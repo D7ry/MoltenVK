@@ -392,7 +392,8 @@ static void callbackFoo(CAMetalDisplayLinkUpdate* update) {
 
 void MVKSwapchain::cb(id<CAMetalDrawable> drawable)
 {
-    MVKLogInfo("Drawable: %llu", drawable.drawableID);
+    _frameCounter++;
+    MVKLogInfo("Drawable: %llu; frame: %llu", drawable.drawableID, _frameCounter);
     if (_pDrawable) {
         [_pDrawable release];
     }

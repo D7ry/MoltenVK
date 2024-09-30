@@ -39,6 +39,7 @@ class MVKSwapchain : public MVKVulkanAPIDeviceObject {
 
 public:
 
+    unsigned long _frameCounter = 0;
     CAMetalDisplayLink* _displayLink;
     id<CAMetalDrawable> _pDrawable = nil;
 
