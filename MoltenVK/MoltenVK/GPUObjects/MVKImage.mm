@@ -1513,8 +1513,30 @@ VkResult MVKPresentableSwapchainImage::acquireAndSignalWhenAvailable(MVKSemaphor
 // Attempt several times to retrieve a good drawable, and set an error to trigger the
 // swapchain to be re-established if one cannot be retrieved.
 id<CAMetalDrawable> MVKPresentableSwapchainImage::getCAMetalDrawable() {
-
+    MVKLogInfo("getCAMetalDrawable");
 	if (_mtlTextureHeadless) { return nil; }	// If headless, there is no drawable.
+    if (!_mtlDrawable) {
+        while (1) { // busy loop to get drawable from swapchain
+            if (_swapchain->_pDrawable) {
+                _mtlDrawable = [_swapchain->_pDrawable retain];
+                [_swapchain->_pDrawable release];
+                _swapchain->_pDrawable = nil;
+
+				bool hasInvalidFormat = _mtlDrawable && !_mtlDrawable.texture.pixelFormat;
+				if (hasInvalidFormat) { releaseMetalDrawable(); }
+                
+			    uint32_t attemptCnt = _swapchain->getImageCount();	// Attempt a resonable number of times
+                if (hasInvalidFormat) {
+                    setConfigurationResult(reportError(VK_ERROR_OUT_OF_DATE_KHR, "CAMetalDrawable with valid format could not be acquired after %d attempts.", attemptCnt));
+                } else if ( !_mtlDrawable ) {
+                    setConfigurationResult(reportError(VK_ERROR_OUT_OF_POOL_MEMORY, "CAMetalDrawable could not be acquired after %d attempts.", attemptCnt));
+                }
+                break;
+            }
+
+        }
+    }
+    return _mtlDrawable;
 
 	if ( !_mtlDrawable ) {
 		@autoreleasepool {
@@ -1539,6 +1561,7 @@ id<CAMetalDrawable> MVKPresentableSwapchainImage::getCAMetalDrawable() {
 
 // If not headless, retrieve the MTLTexture directly from the CAMetalDrawable.
 id<MTLTexture> MVKPresentableSwapchainImage::getMTLTexture(uint8_t planeIndex) {
+    MVKLogInfo("getMTLTexture");
 	return _mtlTextureHeadless ? _mtlTextureHeadless : getCAMetalDrawable().texture;
 }
 
@@ -1552,6 +1575,7 @@ VkResult MVKPresentableSwapchainImage::presentCAMetalDrawable(id<MTLCommandBuffe
 	// MTLCommandBuffer scheduled-handler than it is to call MTLCommandBuffer presentDrawable:.
 	// But get current drawable now, intead of in handler, because a new drawable might be acquired by then.
 	// Attach present handler before presenting to avoid race condition.
+    MVKLogInfo("presentCAMetalDrawable");
 	id<CAMetalDrawable> mtlDrwbl = getCAMetalDrawable();
 	MVKSwapchainSignaler signaler = getPresentationSignaler();
 	[mtlCmdBuff addScheduledHandler: ^(id<MTLCommandBuffer> mcb) {

@@ -23,6 +23,8 @@
 #include "MVKSmallVector.h"
 #include <mutex>
 
+#include <QuartzCore/CAMetalDisplayLink.h>
+
 #import <Metal/Metal.h>
 
 class MVKWatermark;
@@ -31,11 +33,18 @@ class MVKWatermark;
 #pragma mark -
 #pragma mark MVKSwapchain
 
+class CAMetalDrawable;
 /** Represents a Vulkan swapchain. */
 class MVKSwapchain : public MVKVulkanAPIDeviceObject {
 
 public:
 
+    CAMetalDisplayLink* _displayLink;
+    id<CAMetalDrawable> _pDrawable = nil;
+
+    void cb(id<CAMetalDrawable> drawable);
+
+    
 	/** Returns the Vulkan type of this object. */
 	VkObjectType getVkObjectType() override { return VK_OBJECT_TYPE_SWAPCHAIN_KHR; }
 
@@ -99,6 +108,8 @@ public:
 
 	void destroy() override;
 
+
+
 #pragma mark Construction
 	
 	MVKSwapchain(MVKDevice* device, const VkSwapchainCreateInfoKHR* pCreateInfo);
@@ -138,4 +149,6 @@ protected:
 	uint32_t _presentHistoryIndex = 0;
 	uint32_t _presentHistoryHeadIndex = 0;
 	bool _isDeliberatelyScaled = false;
+
+    uint64_t _numUpdateRequested = 0;
 };

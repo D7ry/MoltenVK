@@ -371,12 +371,41 @@ void MVKSwapchain::setHDRMetadataEXT(const VkHdrMetadataEXT& metadata) {
 }
 
 
+@interface DisplayLinkDelegate : NSObject <CAMetalDisplayLinkDelegate>
+@property (nonatomic, assign) uint64_t frameCounter;
+@property (nonatomic, assign) MVKSwapchain* chain;
+@end
+
+@implementation DisplayLinkDelegate
+
+// Implement the required delegate method
+- (void)metalDisplayLink:(CAMetalDisplayLink *)link needsUpdate:(CAMetalDisplayLinkUpdate *)update {
+    // Increment the frame counter
+    self.frameCounter++;
+    self.chain->cb(update.drawable);
+}
+@end
+
+static void callbackFoo(CAMetalDisplayLinkUpdate* update) {
+    printf("here!");
+}
+
+void MVKSwapchain::cb(id<CAMetalDrawable> drawable)
+{
+    MVKLogInfo("Drawable: %llu", drawable.drawableID);
+    if (_pDrawable) {
+        [_pDrawable release];
+    }
+    _pDrawable = [drawable retain];
+}
+
 #pragma mark Construction
 
 MVKSwapchain::MVKSwapchain(MVKDevice* device, const VkSwapchainCreateInfoKHR* pCreateInfo)
 	: MVKVulkanAPIDeviceObject(device),
 	_surface((MVKSurface*)pCreateInfo->surface),
 	_imageExtent(pCreateInfo->imageExtent) {
+    MVKLogInfo("creating swapchain");
 
 	// Check if oldSwapchain is properly set
 	auto* oldSwapchain = (MVKSwapchain*)pCreateInfo->oldSwapchain;
@@ -423,7 +452,20 @@ MVKSwapchain::MVKSwapchain(MVKDevice* device, const VkSwapchainCreateInfoKHR* pC
 							   mtlFeats.maxSwapchainImageCount);
 	initCAMetalLayer(pCreateInfo, pScalingInfo, imgCnt);
     initSurfaceImages(pCreateInfo, imgCnt);		// After initCAMetalLayer()
+    
+    // initialize display link
+    CAMetalLayer* metalLayer = getCAMetalLayer();
+    _displayLink = [[CAMetalDisplayLink alloc] initWithMetalLayer:metalLayer];
+
+	[_displayLink addToRunLoop: NSRunLoop.currentRunLoop forMode: NSDefaultRunLoopMode];
+
+    // bind to delegate
+    DisplayLinkDelegate *delegate = [[DisplayLinkDelegate alloc] init];
+    delegate.chain = this;
+
+    _displayLink.delegate = delegate;
 }
+
 
 // kCAGravityResize is the Metal default
 static CALayerContentsGravity getCALayerContentsGravity(VkSwapchainPresentScalingCreateInfoEXT* pScalingInfo) {
