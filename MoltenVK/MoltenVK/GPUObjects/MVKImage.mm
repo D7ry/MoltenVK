@@ -1525,17 +1525,18 @@ id<CAMetalDrawable> MVKPresentableSwapchainImage::getCAMetalDrawable() {
 				bool hasInvalidFormat = _mtlDrawable && !_mtlDrawable.texture.pixelFormat;
 				if (hasInvalidFormat) { releaseMetalDrawable(); }
                 
-			    uint32_t attemptCnt = _swapchain->getImageCount();	// Attempt a resonable number of times
-                if (hasInvalidFormat) {
-                    setConfigurationResult(reportError(VK_ERROR_OUT_OF_DATE_KHR, "CAMetalDrawable with valid format could not be acquired after %d attempts.", attemptCnt));
-                } else if ( !_mtlDrawable ) {
-                    setConfigurationResult(reportError(VK_ERROR_OUT_OF_POOL_MEMORY, "CAMetalDrawable could not be acquired after %d attempts.", attemptCnt));
-                }
+			    // uint32_t attemptCnt = _swapchain->getImageCount();	// Attempt a resonable number of times
+       //          if (hasInvalidFormat) {
+       //              setConfigurationResult(reportError(VK_ERROR_OUT_OF_DATE_KHR, "CAMetalDrawable with valid format could not be acquired after %d attempts.", attemptCnt));
+       //          } else if ( !_mtlDrawable ) {
+       //              setConfigurationResult(reportError(VK_ERROR_OUT_OF_POOL_MEMORY, "CAMetalDrawable could not be acquired after %d attempts.", attemptCnt));
+       //          }
                 break;
             }
 
         }
     }
+    MVKLogInfo("returning drawable!");
     return _mtlDrawable;
 
 	if ( !_mtlDrawable ) {
